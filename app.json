@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Langa bouri Ecole",
+    "slug": "langa-bouri-ecole",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A7A3A"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A7A3A"
+      },
+      "package": "com.langabouriecole.app"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.langabouriecole.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "langa-bouri-ecole"
+      }
+    }
+  }
+}
