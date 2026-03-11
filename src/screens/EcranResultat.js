@@ -9,15 +9,18 @@ const { width } = Dimensions.get('window');
 export default function EcranResultat({ naviguer, resultat, pseudo, niveau }) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const couronneBounce = useRef(new Animated.Value(0)).current;
+  const brillance = useRef(new Animated.Value(0)).current;
 
   const { score, total, correct } = resultat;
   const pourcentage = Math.round((score / total) * 100);
+  const couronneConquise = pourcentage >= 70;
 
   const mention = () => {
-    if (pourcentage >= 90) return { emoji: '🏆', texte: 'Excellent !', couleur: '#FFD700' };
-    if (pourcentage >= 70) return { emoji: '⭐', texte: 'Très bien !', couleur: '#4CAF50' };
-    if (pourcentage >= 50) return { emoji: '👍', texte: 'Bien !', couleur: '#2196F3' };
-    return { emoji: '💪', texte: 'Continue !', couleur: '#FF9800' };
+    if (pourcentage >= 90) return { emoji: '👑', texte: 'La Couronne est à toi !', couleur: '#FFD700', sous: 'Tu règnes sur le royaume !' };
+    if (pourcentage >= 70) return { emoji: '🏆', texte: 'Victoire Royale !', couleur: '#4CAF50', sous: 'Tu as conquis le château !' };
+    if (pourcentage >= 50) return { emoji: '⚔️', texte: 'Brave Chevalier !', couleur: '#2196F3', sous: 'Continue ta quête !' };
+    return { emoji: '🛡️', texte: 'Reprends les armes !', couleur: '#FF9800', sous: 'Le château résiste encore...' };
   };
 
   const m = mention();
@@ -26,50 +29,79 @@ export default function EcranResultat({ naviguer, resultat, pseudo, niveau }) {
     sauvegarderScore(pseudo, score, niveau);
 
     Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }),
     ]).start();
+
+    if (couronneConquise) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(couronneBounce, { toValue: -15, duration: 600, useNativeDriver: true }),
+          Animated.timing(couronneBounce, { toValue: 0, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(brillance, { toValue: 1, duration: 1000, useNativeDriver: true }),
+          Animated.timing(brillance, { toValue: 0, duration: 1000, useNativeDriver: true }),
+        ])
+      ).start();
+    }
   }, []);
 
   return (
-    <LinearGradient colors={['#0D5C2A', '#1A7A3A', '#2E9B50']} style={styles.container}>
+    <LinearGradient colors={['#0A0A1A', '#1A1A3E', '#0D2B0D']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <Animated.View style={[styles.contenu, { opacity: fadeAnim }]}>
 
-          {/* Trophée animé */}
+          {/* Couronne animée si victoire */}
+          {couronneConquise && (
+            <Animated.Text style={[styles.couronneBig, { transform: [{ translateY: couronneBounce }] }]}>
+              👑
+            </Animated.Text>
+          )}
+
+          {/* Trophée principal */}
           <Animated.Text style={[styles.trophee, { transform: [{ scale: scaleAnim }] }]}>
             {m.emoji}
           </Animated.Text>
 
           <Text style={[styles.mention, { color: m.couleur }]}>{m.texte}</Text>
-          <Text style={styles.pseudo}>{pseudo}</Text>
+          <Text style={styles.sousMention}>{m.sous}</Text>
+          <Text style={styles.pseudo}>— {pseudo} —</Text>
 
-          {/* Score card */}
+          {/* Score card style parchemin */}
           <View style={styles.scoreCard}>
+            <View style={styles.scoreCardDecor}>
+              <Text style={styles.scoreCardDecorText}>⚜️ Résultat ⚜️</Text>
+            </View>
             <View style={styles.scoreRond}>
               <Text style={styles.scoreGrand}>{score}</Text>
               <Text style={styles.scoreSur}>/ {total} pts</Text>
             </View>
-
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statVal}>✅ {correct}</Text>
-                <Text style={styles.statLabel}>Bonnes</Text>
+                <Text style={styles.statEmoji}>⚔️</Text>
+                <Text style={styles.statVal}>{correct}</Text>
+                <Text style={styles.statLabel}>Victoires</Text>
               </View>
               <View style={styles.separateur} />
               <View style={styles.statItem}>
-                <Text style={styles.statVal}>❌ {10 - correct}</Text>
-                <Text style={styles.statLabel}>Fausses</Text>
+                <Text style={styles.statEmoji}>🛡️</Text>
+                <Text style={styles.statVal}>{10 - correct}</Text>
+                <Text style={styles.statLabel}>Défaites</Text>
               </View>
               <View style={styles.separateur} />
               <View style={styles.statItem}>
-                <Text style={styles.statVal}>🎯 {pourcentage}%</Text>
-                <Text style={styles.statLabel}>Score</Text>
+                <Text style={styles.statEmoji}>🎯</Text>
+                <Text style={styles.statVal}>{pourcentage}%</Text>
+                <Text style={styles.statLabel}>Précision</Text>
               </View>
             </View>
           </View>
 
-          {/* Niveau suivant ? */}
+          {/* Badge niveau débloqué */}
           {pourcentage >= 70 && niveau < 4 && (
             <View style={styles.debloqueBadge}>
               <Text style={styles.debloqueTexte}>🔓 Niveau {niveau + 1} débloqué !</Text>
@@ -77,28 +109,26 @@ export default function EcranResultat({ naviguer, resultat, pseudo, niveau }) {
           )}
 
           {/* Boutons */}
-          <TouchableOpacity
-            style={styles.btnPrimaire}
-            onPress={() => naviguer('jeu', { niveau, pseudo })}
-          >
-            <Text style={styles.btnPrimaireTexte}>🔄 Rejouer</Text>
+          <TouchableOpacity style={styles.btnRoyal} onPress={() => naviguer('jeu', { niveau, pseudo })}>
+            <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.btnGradient}>
+              <Text style={styles.btnRoyalTexte}>🔄 Rejouer la bataille</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           {pourcentage >= 70 && niveau < 4 && (
-            <TouchableOpacity
-              style={styles.btnSuivant}
-              onPress={() => naviguer('jeu', { niveau: niveau + 1, pseudo })}
-            >
-              <Text style={styles.btnSuivantTexte}>➡️ Niveau suivant</Text>
+            <TouchableOpacity style={styles.btnSuivant} onPress={() => naviguer('jeu', { niveau: niveau + 1, pseudo })}>
+              <LinearGradient colors={['#4CAF50', '#2E7D32']} style={styles.btnGradient}>
+                <Text style={styles.btnRoyalTexte}>🏰 Niveau suivant →</Text>
+              </LinearGradient>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity style={styles.btnSecondaire} onPress={() => naviguer('classement')}>
-            <Text style={styles.btnSecondaireTexte}>🏆 Classement</Text>
+            <Text style={styles.btnSecondaireTexte}>🏆 Hall des Champions</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnRetour} onPress={() => naviguer('accueil')}>
-            <Text style={styles.btnRetourTexte}>🏠 Accueil</Text>
+            <Text style={styles.btnRetourTexte}>🏰 Retour au château</Text>
           </TouchableOpacity>
 
         </Animated.View>
@@ -112,68 +142,49 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   contenu: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
 
-  trophee: { fontSize: 80, marginBottom: 8 },
-  mention: { fontSize: 32, fontWeight: '900', marginBottom: 4 },
-  pseudo: { fontSize: 18, color: '#B8EBBF', marginBottom: 24, fontStyle: 'italic' },
+  couronneBig: { fontSize: 48, marginBottom: -10 },
+  trophee: { fontSize: 72, marginBottom: 8 },
+  mention: { fontSize: 28, fontWeight: '900', marginBottom: 4, textAlign: 'center' },
+  sousMention: { fontSize: 14, color: '#8A9A8A', marginBottom: 4, fontStyle: 'italic' },
+  pseudo: { fontSize: 16, color: '#B8A86A', marginBottom: 20, letterSpacing: 2 },
 
   scoreCard: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderRadius: 20, padding: 20, width: '100%',
+    alignItems: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.25)',
   },
-  scoreRond: { alignItems: 'center', marginBottom: 20 },
-  scoreGrand: { fontSize: 64, fontWeight: '900', color: '#FFD700' },
-  scoreSur: { fontSize: 16, color: '#B8EBBF', marginTop: -8 },
+  scoreCardDecor: { marginBottom: 12 },
+  scoreCardDecorText: { color: '#B8A86A', fontSize: 12, letterSpacing: 2 },
+  scoreRond: { alignItems: 'center', marginBottom: 16 },
+  scoreGrand: { fontSize: 60, fontWeight: '900', color: '#FFD700' },
+  scoreSur: { fontSize: 14, color: '#8A9A8A', marginTop: -8 },
 
   statsRow: { flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-around' },
   statItem: { alignItems: 'center' },
-  statVal: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
-  statLabel: { fontSize: 12, color: '#B8EBBF', marginTop: 2 },
-  separateur: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.2)' },
+  statEmoji: { fontSize: 20, marginBottom: 4 },
+  statVal: { fontSize: 20, fontWeight: '900', color: '#FFFFFF' },
+  statLabel: { fontSize: 11, color: '#8A9A8A', marginTop: 2 },
+  separateur: { width: 1, height: 50, backgroundColor: 'rgba(255,255,255,0.1)' },
 
   debloqueBadge: {
-    backgroundColor: '#FFD700',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    marginBottom: 20,
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderRadius: 20, paddingHorizontal: 20, paddingVertical: 8, marginBottom: 16,
+    borderWidth: 1, borderColor: '#FFD70050',
   },
-  debloqueTexte: { fontSize: 14, fontWeight: '900', color: '#0D5C2A' },
+  debloqueTexte: { fontSize: 14, fontWeight: '900', color: '#FFD700' },
 
-  btnPrimaire: {
-    backgroundColor: '#FFD700',
-    borderRadius: 16,
-    paddingVertical: 14,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  btnPrimaireTexte: { fontSize: 16, fontWeight: '900', color: '#0D5C2A' },
-
-  btnSuivant: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 16,
-    paddingVertical: 14,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  btnSuivantTexte: { fontSize: 16, fontWeight: '900', color: '#FFFFFF' },
+  btnRoyal: { width: '100%', marginBottom: 10, borderRadius: 16, overflow: 'hidden', elevation: 8 },
+  btnSuivant: { width: '100%', marginBottom: 10, borderRadius: 16, overflow: 'hidden', elevation: 8 },
+  btnGradient: { paddingVertical: 14, alignItems: 'center', borderRadius: 16 },
+  btnRoyalTexte: { fontSize: 16, fontWeight: '900', color: '#1A0A00' },
 
   btnSecondaire: {
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    borderRadius: 16,
-    paddingVertical: 12,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
+    borderWidth: 2, borderColor: '#FFD700', borderRadius: 16,
+    paddingVertical: 12, width: '100%', alignItems: 'center', marginBottom: 8,
   },
   btnSecondaireTexte: { fontSize: 15, fontWeight: '700', color: '#FFD700' },
 
   btnRetour: { padding: 12 },
-  btnRetourTexte: { color: '#B8EBBF', fontSize: 15 },
+  btnRetourTexte: { color: '#8A9A8A', fontSize: 14 },
 });
